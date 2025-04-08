@@ -22,6 +22,7 @@ Elle fonctionne de manière autonome sur votre machine, assurant ainsi une prote
 
 #### 1.1. Calcul de l'IMC
 L'**Indice de Masse Corporelle** (IMC) est un indicateur permettant d'évaluer la corpulence d'une personne en fonction de son poids et de sa taille. Il est calculé à l'aide de la formule suivante :
+
 $$\text{IMC} = \frac{\text{Masse (Kg)}}{\text{(Taille (m))}^2}$$
 
 Cet indicateur est utilisé pour identifier les risques liés à une insuffisance pondérale ou à un excès de poids.
@@ -88,11 +89,11 @@ Une fois le **BEJ** calculé, il est possible de répartir les macronutriments (
 
 **Formules générales pour les apports en macronutriments** :
 
-$$\text{Glucides (g)} = \left( \frac{\text{% de glucides} \times BEJ}{4} \right)$$
+$$\text{Glucides (g)} = \left( \frac{\text{Pourcentage de glucides} \times BEJ}{4} \right)$$
 
-$$\text{Protéines (g)} = \left( \frac{\text{% de protéines} \times BEJ}{4} \right)$$
+$$\text{Protéines (g)} = \left( \frac{\text{Pourcentage de protéines} \times BEJ}{4} \right)$$
 
-$$\text{Lipides (g)} = \left( \frac{\text{% de lipides} \times BEJ}{9} \right)$$
+$$\text{Lipides (g)} = \left( \frac{\text{Pourcentage de lipides} \times BEJ}{9} \right)$$
 
 
 **Apport calorique par gramme de macronutriments** :
