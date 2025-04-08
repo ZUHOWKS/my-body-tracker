@@ -80,7 +80,7 @@ Ces fonctionnalités aident l'utilisateur à mieux gérer son alimentation et à
 #### 4.1. Calcul du Besoin Énergétique Journalier (BEJ)
 Le besoin énergétique journalier (BEJ) est obtenu en multipliant les dépenses du métabolisme de base (MB) par un coefficient d'activité physique (NAP - Niveau d’Activité Physique).
 
-- **BEJ** = MB × NAP
+$$\text{BEJ} = \text{MB} \times \text{NAP}$$
 
 #### 4.2. Répartition des Macronutriments
 
