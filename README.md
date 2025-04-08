@@ -77,12 +77,12 @@ L'utilisateur peut définir un objectif nutritionnel personnalisé en lien avec 
 
 Ces fonctionnalités aident l'utilisateur à mieux gérer son alimentation et à atteindre ou maintenir un poids.
 
-#### 4.2. Calcul du Besoin Énergétique Journalier (BEJ)
+#### 4.1. Calcul du Besoin Énergétique Journalier (BEJ)
 Le besoin énergétique journalier (BEJ) est obtenu en multipliant les dépenses du métabolisme de base (MB) par un coefficient d'activité physique (NAP - Niveau d’Activité Physique).
 
 - **BEJ** = MB × NAP
 
-#### 4.3. Répartition des Macronutriments
+#### 4.2. Répartition des Macronutriments
 
 Une fois le **BEJ** calculé, il est possible de répartir les macronutriments (glucides, lipides, protéines) selon l'objectif visé.
 
