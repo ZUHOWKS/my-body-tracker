@@ -88,14 +88,14 @@ Une fois le **BEJ** calculé, il est possible de répartir les macronutriments (
 
 **Formules générales pour les apports en macronutriments** :
 
-$$\text{Glucides (g)} = \left( \frac{\% \text{ de glucides} \times BEJ}{4} \right)$$
+$$\text{Glucides (g)} = \left( \frac{\text{% de glucides} \times BEJ}{4} \right)$$
 
-$$\text{Protéines (g)} = \left( \frac{\% \text{ de protéines} \times BEJ}{4} \right)$$
+$$\text{Protéines (g)} = \left( \frac{\text{% de protéines} \times BEJ}{4} \right)$$
 
-$$\text{Lipides (g)} = \left( \frac{\% \text{ de lipides} \times BEJ}{9} \right)$$
+$$\text{Lipides (g)} = \left( \frac{\text{% de lipides} \times BEJ}{9} \right)$$
 
 
-**Note** :
+**Apport calorique par gramme de macronutriments** :
 - 1 g de **glucides** = **4 kcal**
 - 1 g de **protéines** = **4 kcal**
 - 1 g de **lipides** = **9 kcal**
