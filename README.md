@@ -113,9 +113,6 @@ $$\text{Lipides (g)} = \left( \frac{\% \text{ de lipides} \times BEJ}{9} \right)
 | **Sportif de haut niveau**    | 50               | 20              | 30                |
 
 
----
-
-
 #### 4.3. Calcul des Apports selon le Poids de Corps
 
 Dans certains cas (prise de masse musculaire, diète sportive), les macronutriments sont calculés en **grammes par kg de poids corporel**.
