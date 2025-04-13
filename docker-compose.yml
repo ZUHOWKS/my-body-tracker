@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bodytracker
+      POSTGRES_USER: bodytracker
+      POSTGRES_PASSWORD: bodytracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: bodytracker_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_DB=bodytracker
+      - POSTGRES_USER=bodytracker
+      - POSTGRES_PASSWORD=bodytracker
+
+volumes:
+  postgres_data:
