@@ -11,7 +11,10 @@ services:
       - postgres_data:/var/lib/postgresql/data
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bodytracker_api
     container_name: bodytracker_api
     ports:
       - "8080:8080"
@@ -21,6 +24,6 @@ services:
       - POSTGRES_DB=bodytracker
       - POSTGRES_USER=bodytracker
       - POSTGRES_PASSWORD=bodytracker
-
+      - FDC_API_KEY=PUT_YOUR_API_KEY_HERE
 volumes:
   postgres_data:

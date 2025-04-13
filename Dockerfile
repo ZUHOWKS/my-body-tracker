@@ -10,21 +10,21 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Copy the rest of the project
-COPY . .
+COPY api api
+COPY internal internal
+COPY cmd cmd
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bodytracker_api ./api
+RUN go build -o bodytracker_api ./cmd/api
 
 # Final stage
-FROM alpine:latest
-
-WORKDIR /app
+FROM scratch
 
 # Copy the binary from builder
-COPY --from=builder /app/bodytracker_api .
+COPY --from=builder /app/bodytracker_api /app/bodytracker_api
 
-# Expose port
+# Expose portz
 EXPOSE 8080
 
 # Run the application
-CMD ["./bodytracker_api"]
+CMD ["/app/bodytracker_api"]

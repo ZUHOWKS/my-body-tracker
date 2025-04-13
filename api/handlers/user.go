@@ -43,13 +43,17 @@ func (h *UserHandler) GetUserStats(c *gin.Context) {
 	bfp := calculator.CalculateBFP(bmi, user.Age, 1) // Assuming male for now, should be part of user model
 	bmr := calculator.CalculateBasalMetabolism(user.Weight, user.Height, user.Age, 1)
 
-	c.JSON(http.StatusOK, gin.H{
+	// Log the response to debug
+	response := gin.H{
 		"height": user.Height,
 		"weight": user.Weight,
 		"bmi":    bmi,
 		"bfp":    bfp,
 		"bmr":    bmr,
-	})
+	}
+
+	// Print to server logs
+	c.JSON(http.StatusOK, response)
 }
 
 func (h *UserHandler) UpdateUser(c *gin.Context) {
