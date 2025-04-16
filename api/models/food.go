@@ -1,7 +1,10 @@
 package models
 
+import "gorm.io/gorm"
+
 type Food struct {
-	FdcID       string  `json:"fdcId"`
+	gorm.Model
+	FdcID       string  `json:"fdcId" gorm:"uniqueIndex"`
 	Name        string  `json:"name"`
 	Protein     float64 `json:"protein"`
 	Carbs       float64 `json:"carbs"`
@@ -9,4 +12,5 @@ type Food struct {
 	Calories    float64 `json:"calories"`
 	Fiber       float64 `json:"fiber"`
 	ServingSize float64 `json:"servingSize"`
+	Meals       []Meal  `json:"meals" gorm:"many2many:meal_foods;"`
 }

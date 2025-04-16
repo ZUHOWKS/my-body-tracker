@@ -4,9 +4,11 @@ type User struct {
 	ID            uint    `json:"id"`
 	FirstName     string  `json:"firstName"`
 	LastName      string  `json:"lastName"`
+	Name          string  `json:"name"`
 	Age           int     `json:"age"`
 	Weight        float64 `json:"weight"`
 	Height        int     `json:"height"` // in cm
+	Gender        string  `json:"gender"`
 	Goal          string  `json:"goal"`
 	Sex           int     `json:"sex"`           // 0 for female, 1 for male
 	ActivityLevel int     `json:"activityLevel"` // 0-7 days of activity per week

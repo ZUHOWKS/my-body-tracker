@@ -14,7 +14,7 @@ import (
 
 func Entrypoint() {
 	// Database connection
-	dsn := os.ExpandEnv("host=postgres user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB} sslmode=disable")
+	dsn := os.ExpandEnv("host=localhost user=bodytracker password=bodytracker dbname=bodytracker")
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database:", err)
@@ -39,6 +39,7 @@ func Entrypoint() {
 
 	userRoutes := r.Group("/users")
 	{
+		userRoutes.GET("/", userHandler.ListUsers)
 		userRoutes.POST("/", userHandler.CreateUser)
 		userRoutes.GET("/:id", userHandler.GetUserStats)
 		userRoutes.PUT("/:id", userHandler.UpdateUser)

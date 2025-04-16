@@ -37,15 +37,13 @@ func searchFood(query string) {
 		return
 	}
 
-	var result struct {
-		Foods []Food `json:"foods"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	var foods []Food
+	if err := json.NewDecoder(resp.Body).Decode(&foods); err != nil {
 		fmt.Println("Error parsing response:", err)
 		return
 	}
 
-	for _, food := range result.Foods {
+	for _, food := range foods {
 		fmt.Printf("ID: %s\nName: %s\n\n", food.FdcID, food.Name)
 	}
 }

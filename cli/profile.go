@@ -7,14 +7,28 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
 func handleProfileCommand(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Usage: profile create | list | select <id> | view <id>")
+		return
+	}
+
 	switch args[0] {
 	case "create":
 		user := promptUserProfile()
 		createProfile(user)
+	case "list":
+		listProfiles()
+	case "select":
+		if len(args) != 2 {
+			fmt.Println("Usage: profile select <id>")
+			return
+		}
+		selectProfile(args[1])
 	case "view":
 		if len(args) != 2 {
 			fmt.Println("Usage: profile view <id>")
@@ -22,7 +36,7 @@ func handleProfileCommand(args []string) {
 		}
 		viewProfile(args[1])
 	default:
-		fmt.Println("Unknown profile command. Available: create, view")
+		fmt.Println("Unknown profile command. Available: create, list, select, view")
 	}
 }
 
@@ -67,13 +81,13 @@ func promptUserProfile() User {
 }
 
 func createProfile(user User) {
-	jsonData, err := json.Marshal(user)
+	payload, err := json.Marshal(user)
 	if err != nil {
-		fmt.Println("Error preparing data:", err)
+		fmt.Println("Error creating profile:", err)
 		return
 	}
 
-	resp, err := http.Post(apiURL+"/users", "application/json", bytes.NewBuffer(jsonData))
+	resp, err := http.Post(apiURL+"/users", "application/json", bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Println("Error creating profile:", err)
 		return
@@ -88,28 +102,68 @@ func createProfile(user User) {
 	fmt.Println("Profile created successfully!")
 }
 
-func viewProfile(id string) {
-	resp, err := http.Get(apiURL + "/users/" + id)
+func listProfiles() {
+	resp, err := http.Get(fmt.Sprintf("%s/users", apiURL))
 	if err != nil {
-		fmt.Println("Error fetching profile:", err)
+		fmt.Println("Error listing users:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var users []User
+	if err := json.NewDecoder(resp.Body).Decode(&users); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return
+	}
+
+	fmt.Println("Available users:")
+	for _, user := range users {
+		fmt.Printf("ID: %d - %s %s\n", user.ID, user.FirstName, user.LastName)
+	}
+}
+
+func selectProfile(id string) {
+	userID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		fmt.Println("Invalid user ID")
+		return
+	}
+
+	// Verify that the user exists
+	resp, err := http.Get(fmt.Sprintf("%s/users/%s", apiURL, id))
+	if err != nil {
+		fmt.Println("Error selecting user:", err)
 		return
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error: Server returned", resp.Status)
+		fmt.Println("User not found")
 		return
 	}
 
-	var data map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+	if err := setCurrentUserID(uint(userID)); err != nil {
+		fmt.Println("Error saving session:", err)
+		return
+	}
+
+	fmt.Printf("Selected user with ID %s\n", id)
+}
+
+func viewProfile(id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/users/%s", apiURL, id))
+	if err != nil {
+		fmt.Println("Error getting user profile:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	var user User
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
 		fmt.Println("Error parsing response:", err)
 		return
 	}
 
-	fmt.Printf("Height: %d cm\n", int(data["height"].(float64)))
-	fmt.Printf("Weight: %.2f kg\n", data["weight"])
-	fmt.Printf("BMI: %.2f\n", data["bmi"])
-	fmt.Printf("Body Fat Percentage: %.2f%%\n", data["bfp"])
-	fmt.Printf("Basal Metabolic Rate: %.2f kcal/day\n", data["bmr"])
+	fmt.Printf("Name: %s %s\nAge: %d\nHeight: %d cm\nWeight: %.2f kg\nGender: %s\n",
+		user.FirstName, user.LastName, user.Age, user.Height, user.Weight, user.Gender)
 }

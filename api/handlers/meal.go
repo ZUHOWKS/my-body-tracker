@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/ZUHOWKS/my-body-tracker/api/models"
@@ -23,6 +24,20 @@ func (h *MealHandler) CreateMeal(c *gin.Context) {
 		return
 	}
 
+	// Validate meal type
+	switch meal.Type {
+	case models.Breakfast, models.Lunch, models.Break, models.Dinner:
+		// Valid type
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid meal type. Must be one of: breakfast, lunch, break, dinner"})
+		return
+	}
+
+	// Set date to current date if not provided
+	if meal.Date.IsZero() {
+		meal.Date = time.Now()
+	}
+
 	if err := h.db.Create(&meal).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -33,7 +48,25 @@ func (h *MealHandler) CreateMeal(c *gin.Context) {
 
 func (h *MealHandler) GetUserMeals(c *gin.Context) {
 	var meals []models.Meal
-	if err := h.db.Where("user_id = ?", c.Param("userId")).Find(&meals).Error; err != nil {
+	query := h.db.Where("user_id = ?", c.Param("userId"))
+
+	// Filter by date if provided
+	if date := c.Query("date"); date != "" {
+		parsedDate, err := time.Parse("2006-01-02", date)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid date format. Use YYYY-MM-DD"})
+			return
+		}
+		query = query.Where("DATE(date) = DATE(?)", parsedDate)
+	}
+
+	// Filter by type if provided
+	if mealType := c.Query("type"); mealType != "" {
+		query = query.Where("type = ?", mealType)
+	}
+
+	// Execute query with preloaded foods
+	if err := query.Preload("Foods").Order("date DESC, type").Find(&meals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

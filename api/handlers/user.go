@@ -32,6 +32,16 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, user)
 }
 
+func (h *UserHandler) ListUsers(c *gin.Context) {
+	var users []models.User
+	if err := h.db.Find(&users).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
+}
+
 func (h *UserHandler) GetUserStats(c *gin.Context) {
 	var user models.User
 	if err := h.db.First(&user, c.Param("id")).Error; err != nil {

@@ -24,11 +24,11 @@ func (h *FoodHandler) SearchFood(c *gin.Context) {
 		return
 	}
 
-	fdcResp, err := services.SearchFood(query, *h.httpClient)
+	foods, err := services.SearchFood(query, *h.httpClient)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, fdcResp)
+	c.JSON(http.StatusOK, gin.H{"foods": foods})
 }
