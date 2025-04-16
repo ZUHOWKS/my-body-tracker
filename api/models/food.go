@@ -1,6 +1,9 @@
 package models
 
+import "gorm.io/gorm"
+
 type Food struct {
+	gorm.Model
 	FdcID       string  `json:"fdcId"`
 	Name        string  `json:"name"`
 	Protein     float64 `json:"protein"`
