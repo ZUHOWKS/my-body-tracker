@@ -2,3 +2,4 @@
 .vscode
 exemple_fdc.go
 cli/cli
+.env
