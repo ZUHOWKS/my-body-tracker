@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/ZUHOWKS/my-body-tracker/api/models"
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -48,7 +48,7 @@ func (h *MealHandler) CreateMeal(c *gin.Context) {
 
 func (h *MealHandler) GetUserMeals(c *gin.Context) {
 	var meals []models.Meal
-	query := h.db.Where("user_id = ?", c.Param("userId"))
+	query := h.db.Model(&models.Meal{}).Where("user_id = ?", c.Param("userId"))
 
 	// Filter by date if provided
 	if date := c.Query("date"); date != "" {

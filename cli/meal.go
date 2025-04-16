@@ -253,36 +253,56 @@ func addFoodToMealType(mealType, dateStr, foodQuery string) {
 	defer resp.Body.Close()
 
 	// Read the response body
-	bodyBytes, err := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response body:", err)
 		return
 	}
 
-	// First try parsing as an array
-	var foods []struct {
+	// Define food item structure
+	type FoodItem struct {
 		FdcID    string  `json:"fdcId"`
 		Name     string  `json:"name"`
 		Calories float64 `json:"calories"`
 	}
 
-	err = json.Unmarshal(bodyBytes, &foods)
-	if err != nil {
-		// If array parsing fails, try parsing as an object with a results field
-		var foodResponse struct {
-			Results []struct {
-				FdcID    string  `json:"fdcId"`
-				Name     string  `json:"name"`
-				Calories float64 `json:"calories"`
-			} `json:"results"`
-		}
+	// First, try to parse the raw JSON to see what we're dealing with
+	var rawData map[string]interface{}
+	if err := json.Unmarshal(respBody, &rawData); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return
+	}
 
-		if err := json.Unmarshal(bodyBytes, &foodResponse); err != nil {
-			fmt.Println("Error parsing food search results:", err)
+	// Extract foods from the response
+	var foods []FoodItem
+
+	// Check if the response has a 'foods' field
+	if foodsData, ok := rawData["foods"]; ok {
+		// Convert the foods data to JSON
+		foodsJSON, err := json.Marshal(foodsData)
+		if err != nil {
+			fmt.Println("Error marshaling foods data:", err)
 			return
 		}
 
-		foods = foodResponse.Results
+		// Unmarshal into our foods slice
+		if err := json.Unmarshal(foodsJSON, &foods); err != nil {
+			fmt.Println("Error parsing foods data:", err)
+			return
+		}
+	} else {
+		// Try parsing the whole response as an array of foods
+		if err := json.Unmarshal(respBody, &foods); err != nil {
+			// If that fails, try with a results field
+			var resultsResponse struct {
+				Results []FoodItem `json:"results"`
+			}
+			if err := json.Unmarshal(respBody, &resultsResponse); err != nil {
+				fmt.Println("Error parsing food search results:", err)
+				return
+			}
+			foods = resultsResponse.Results
+		}
 	}
 
 	if len(foods) == 0 {
@@ -322,25 +342,44 @@ func addFoodToMealType(mealType, dateStr, foodQuery string) {
 	}
 
 	// Try to find existing meal
-	resp, err = http.Get(fmt.Sprintf("%s/meals/user/%d?date=%s&type=%s", apiURL, userID, date.Format("2006-01-02"), mealType))
+	mealURL := fmt.Sprintf("%s/meals/user/%d?date=%s&type=%s", apiURL, userID, date.Format("2006-01-02"), mealType)
+	fmt.Println(mealURL)
+	resp, err = http.Get(mealURL)
 	if err != nil {
 		fmt.Println("Error checking for existing meal:", err)
 		return
 	}
 	defer resp.Body.Close()
 
-	var existingMeals []struct {
-		ID uint `json:"id"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&existingMeals); err != nil {
-		fmt.Println("Error parsing meal check response:", err)
+	// Read the meal check response
+	mealRespBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading meal check response:", err)
 		return
 	}
 
+	// Initialize mealID
 	var mealID uint
-	if len(existingMeals) > 0 {
-		mealID = existingMeals[0].ID
+
+	// First check if we got an error response
+	var errorResp struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(mealRespBody, &errorResp); err == nil && errorResp.Error != "" {
+		fmt.Println("Server returned an error:", errorResp.Error)
+		// We'll create a new meal since we couldn't find an existing one
 	} else {
+		// Try to parse as an array of meals
+		var existingMeals []struct {
+			ID uint `json:"id"`
+		}
+		if err := json.Unmarshal(mealRespBody, &existingMeals); err == nil && len(existingMeals) > 0 {
+			mealID = existingMeals[0].ID
+		}
+	}
+
+	// If no existing meal was found, create a new one
+	if mealID == 0 {
 		// Create new meal
 		payload, err := json.Marshal(meal)
 		if err != nil {
@@ -360,15 +399,18 @@ func addFoodToMealType(mealType, dateStr, foodQuery string) {
 			return
 		}
 
-		if err := json.NewDecoder(resp.Body).Decode(&meal); err != nil {
+		var createdMeal struct {
+			ID uint `json:"id"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&createdMeal); err != nil {
 			fmt.Println("Error parsing meal creation response:", err)
 			return
 		}
-		mealID = meal.ID
+		mealID = createdMeal.ID
 	}
 
 	// Add food to meal
-	url := fmt.Sprintf("%s/meals/%d/foods", apiURL, mealID)
+	addFoodURL := fmt.Sprintf("%s/meals/%d/foods", apiURL, mealID)
 	payload := map[string]string{"foodId": foods[selection].FdcID}
 
 	jsonPayload, err := json.Marshal(payload)
@@ -377,7 +419,7 @@ func addFoodToMealType(mealType, dateStr, foodQuery string) {
 		return
 	}
 
-	resp, err = http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+	resp, err = http.Post(addFoodURL, "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		fmt.Println("Error adding food to meal:", err)
 		return
