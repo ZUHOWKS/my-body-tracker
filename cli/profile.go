@@ -9,11 +9,12 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func handleProfileCommand(args []string) {
 	if len(args) < 1 {
-		fmt.Println("Usage: profile create | list | select <id> | view <id>")
+		fmt.Println("Usage: profile create | list | select <id> | view <id> | targets <id> | set-targets <id>")
 		return
 	}
 
@@ -35,8 +36,20 @@ func handleProfileCommand(args []string) {
 			return
 		}
 		viewProfile(args[1])
+	case "targets":
+		if len(args) != 2 {
+			fmt.Println("Usage: profile targets <id>")
+			return
+		}
+		viewTargets(args[1])
+	case "set-targets":
+		if len(args) != 2 {
+			fmt.Println("Usage: profile set-targets <id>")
+			return
+		}
+		setTargets(args[1])
 	default:
-		fmt.Println("Unknown profile command. Available: create, list, select, view")
+		fmt.Println("Unknown profile command. Available: create, list, select, view, targets, set-targets")
 	}
 }
 
@@ -164,6 +177,175 @@ func viewProfile(id string) {
 		return
 	}
 
+	gender := "Female"
+	if user.Sex == 1 {
+		gender = "Male"
+	}
+
 	fmt.Printf("Name: %s %s\nAge: %d\nHeight: %d cm\nWeight: %.2f kg\nGender: %s\n",
-		user.FirstName, user.LastName, user.Age, user.Height, user.Weight, user.Gender)
+		user.FirstName, user.LastName, user.Age, user.Height, user.Weight, gender)
+
+	// Afficher les statistiques de l'utilisateur
+	viewUserStats(id)
+}
+
+func viewUserStats(id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/users/%s/stats", apiURL, id))
+	if err != nil {
+		fmt.Println("Error getting user stats:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Error: Server returned", resp.Status)
+		return
+	}
+
+	var stats struct {
+		Height int     `json:"height"`
+		Weight float64 `json:"weight"`
+		BMI    float64 `json:"bmi"`
+		BFP    float64 `json:"bfp"`
+		IMG    float64 `json:"img"`
+		BMR    float64 `json:"bmr"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+		fmt.Println("Error parsing stats response:", err)
+		return
+	}
+
+	fmt.Println("\nHealth Statistics:")
+	fmt.Printf("BMI: %.2f\n", stats.BMI)
+	fmt.Printf("Body Fat Percentage: %.2f%%\n", stats.BFP)
+	fmt.Printf("Body Fat Mass Index: %.2f\n", stats.IMG)
+	fmt.Printf("Basal Metabolic Rate: %.2f kcal/day\n", stats.BMR)
+}
+
+func viewTargets(id string) {
+	// Récupérer les objectifs
+	resp, err := http.Get(fmt.Sprintf("%s/users/%s/targets", apiURL, id))
+	if err != nil {
+		fmt.Println("Error getting user targets:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		fmt.Println("No targets found for this user. Use 'profile set-targets <id>' to set targets.")
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Error: Server returned", resp.Status)
+		return
+	}
+
+	var target Target
+	if err := json.NewDecoder(resp.Body).Decode(&target); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return
+	}
+
+	// Récupérer les repas du jour
+	today := time.Now().Format("2006-01-02")
+	mealsResp, err := http.Get(fmt.Sprintf("%s/meals/user/%s?date=%s", apiURL, id, today))
+	if err != nil {
+		fmt.Println("Error getting today's meals:", err)
+		return
+	}
+	defer mealsResp.Body.Close()
+
+	var meals []struct {
+		ID    uint   `json:"id"`
+		Type  string `json:"type"`
+		Foods []Food `json:"foods"`
+	}
+
+	if err := json.NewDecoder(mealsResp.Body).Decode(&meals); err != nil {
+		fmt.Println("Error parsing meals response:", err)
+		return
+	}
+
+	// Calculer les totaux des repas
+	var consumed struct {
+		Calories float64
+		Protein  float64
+		Carbs    float64
+		Fat      float64
+		Fiber    float64
+	}
+
+	for _, meal := range meals {
+		for _, food := range meal.Foods {
+			consumed.Calories += food.Calories
+			consumed.Protein += food.Protein
+			consumed.Carbs += food.Carbs
+			consumed.Fat += food.Fat
+			consumed.Fiber += food.Fiber
+		}
+	}
+
+	// Afficher les objectifs et la progression
+	fmt.Println("\nDaily Nutrition Targets and Progress:")
+	fmt.Printf("Calories: %.0f/%.0f kcal (%.1f%%)\n", consumed.Calories, target.Calories, (consumed.Calories/target.Calories)*100)
+	fmt.Printf("Protein:  %.1f/%.1f g (%.1f%%)\n", consumed.Protein, target.Protein, (consumed.Protein/target.Protein)*100)
+	fmt.Printf("Carbs:    %.1f/%.1f g (%.1f%%)\n", consumed.Carbs, target.Carbs, (consumed.Carbs/target.Carbs)*100)
+	fmt.Printf("Fat:      %.1f/%.1f g (%.1f%%)\n", consumed.Fat, target.Fat, (consumed.Fat/target.Fat)*100)
+	fmt.Printf("Fiber:    %.1f/%.1f g (%.1f%%)\n", consumed.Fiber, target.Fiber, (consumed.Fiber/target.Fiber)*100)
+
+	// Afficher les repas du jour
+	fmt.Println("\nToday's Meals:")
+	for _, meal := range meals {
+		fmt.Printf("\n%s:\n", meal.Type)
+		for _, food := range meal.Foods {
+			fmt.Printf("- %s (%.0f kcal)\n", food.Name, food.Calories)
+		}
+	}
+}
+
+func setTargets(id string) {
+	target := promptUserTargets()
+
+	payload, err := json.Marshal(target)
+	if err != nil {
+		fmt.Println("Error preparing targets:", err)
+		return
+	}
+
+	resp, err := http.Post(fmt.Sprintf("%s/users/%s/targets", apiURL, id), "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("Error setting targets:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Error: Server returned", resp.Status)
+		return
+	}
+
+	fmt.Println("Targets set successfully!")
+}
+
+func promptUserTargets() Target {
+	var target Target
+
+	fmt.Print("Daily Calories Target (kcal): ")
+	fmt.Scanf("%f\n", &target.Calories)
+
+	fmt.Print("Daily Protein Target (g): ")
+	fmt.Scanf("%f\n", &target.Protein)
+
+	fmt.Print("Daily Carbs Target (g): ")
+	fmt.Scanf("%f\n", &target.Carbs)
+
+	fmt.Print("Daily Fat Target (g): ")
+	fmt.Scanf("%f\n", &target.Fat)
+
+	fmt.Print("Daily Fiber Target (g): ")
+	fmt.Scanf("%f\n", &target.Fiber)
+
+	return target
 }

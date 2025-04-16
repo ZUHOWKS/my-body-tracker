@@ -24,3 +24,11 @@ type Food struct {
 	Fiber       float64 `json:"fiber"`
 	ServingSize float64 `json:"servingSize"`
 }
+
+type Target struct {
+	Calories float64 `json:"calories"`
+	Protein  float64 `json:"protein"` // in grams
+	Carbs    float64 `json:"carbs"`   // in grams
+	Fat      float64 `json:"fat"`     // in grams
+	Fiber    float64 `json:"fiber"`   // in grams
+}

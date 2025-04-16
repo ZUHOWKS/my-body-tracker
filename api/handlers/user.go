@@ -50,8 +50,9 @@ func (h *UserHandler) GetUserStats(c *gin.Context) {
 	}
 
 	bmi := calculator.CalculateBMI(user.Weight, user.Height)
-	bfp := calculator.CalculateBFP(bmi, user.Age, 1) // Assuming male for now, should be part of user model
-	bmr := calculator.CalculateBasalMetabolism(user.Weight, user.Height, user.Age, 1)
+	bfp := calculator.CalculateBFP(bmi, user.Age, user.Sex)
+	img := calculator.CalculateIMG(user.Weight, user.Height, user.Sex)
+	bmr := calculator.CalculateBasalMetabolism(user.Weight, user.Height, user.Age, user.Sex)
 
 	// Log the response to debug
 	response := gin.H{
@@ -59,6 +60,7 @@ func (h *UserHandler) GetUserStats(c *gin.Context) {
 		"weight": user.Weight,
 		"bmi":    bmi,
 		"bfp":    bfp,
+		"img":    img,
 		"bmr":    bmr,
 	}
 
@@ -84,4 +86,75 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) GetUser(c *gin.Context) {
+	var user models.User
+	if err := h.db.First(&user, c.Param("id")).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
+}
+
+func (h *UserHandler) SetUserTargets(c *gin.Context) {
+	userID := c.Param("id")
+
+	var target models.Target
+	if err := c.ShouldBindJSON(&target); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Vérifier si l'utilisateur existe
+	var user models.User
+	if err := h.db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Définir l'ID de l'utilisateur
+	target.UserID = user.ID
+
+	// Vérifier si des objectifs existent déjà pour cet utilisateur
+	var existingTarget models.Target
+	result := h.db.Where("user_id = ?", user.ID).First(&existingTarget)
+
+	if result.Error == gorm.ErrRecordNotFound {
+		// Créer de nouveaux objectifs
+		if err := h.db.Create(&target).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	} else if result.Error != nil {
+		// Une erreur s'est produite
+		c.JSON(http.StatusInternalServerError, gin.H{"error": result.Error.Error()})
+		return
+	} else {
+		// Mettre à jour les objectifs existants
+		target.ID = existingTarget.ID
+		if err := h.db.Save(&target).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	c.JSON(http.StatusOK, target)
+}
+
+func (h *UserHandler) GetUserTargets(c *gin.Context) {
+	userID := c.Param("id")
+
+	var target models.Target
+	if err := h.db.Where("user_id = ?", userID).First(&target).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "No targets found for this user"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, target)
 }
