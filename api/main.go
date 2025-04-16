@@ -34,10 +34,8 @@ func Entrypoint() {
 
 	db.AutoMigrate(
 		&models.User{},
-		&models.MealPlan{},
-		&models.Meal{},
 		&models.Food{},
-		&models.DailyIntake{},
+		&models.Meal{},
 	)
 
 	// Initialize handlers
