@@ -62,11 +62,11 @@ func (h *MealHandler) GetUserMeals(c *gin.Context) {
 
 	// Filter by type if provided
 	if mealType := c.Query("type"); mealType != "" {
-		query = query.Where("type = ?", mealType)
+		query = query.Where("meal_type = ?", mealType)
 	}
 
 	// Execute query with preloaded foods
-	if err := query.Preload("Foods").Order("date DESC, type").Find(&meals).Error; err != nil {
+	if err := query.Preload("Foods").Order("date DESC, meal_type").Find(&meals).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -76,20 +76,62 @@ func (h *MealHandler) GetUserMeals(c *gin.Context) {
 
 func (h *MealHandler) AddFoodToMeal(c *gin.Context) {
 	mealID := c.Param("id")
-	var food models.Food
-	if err := c.ShouldBindJSON(&food); err != nil {
+
+	// Parse the request body to get the foodId
+	var request struct {
+		FoodID string `json:"foodId"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	if request.FoodID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "foodId is required"})
+		return
+	}
+
+	// Vérifier si l'aliment existe déjà dans la base de données
+	var existingFood models.Food
+	if err := h.db.Where("fdc_id = ?", request.FoodID).First(&existingFood).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Food not found. Please search for it first."})
+			return
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error: " + err.Error()})
+			return
+		}
+	}
+
 	var meal models.Meal
-	if err := h.db.First(&meal, mealID).Error; err != nil {
+	if err := h.db.Preload("Foods").First(&meal, mealID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Meal not found"})
 		return
 	}
 
-	if err := h.db.Model(&meal).Association("Foods").Append(&food); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// Vérifier si l'aliment est déjà dans le repas
+	var foodExists bool
+	for _, food := range meal.Foods {
+		if food.FdcID == request.FoodID {
+			foodExists = true
+			break
+		}
+	}
+
+	if foodExists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Food is already in this meal"})
+		return
+	}
+
+	// Ajouter l'aliment au repas
+	if err := h.db.Model(&meal).Association("Foods").Append(&existingFood); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add food to meal: " + err.Error()})
+		return
+	}
+
+	// Recharger le repas avec ses aliments
+	if err := h.db.Preload("Foods").First(&meal, mealID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload meal: " + err.Error()})
 		return
 	}
 

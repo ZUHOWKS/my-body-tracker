@@ -91,36 +91,32 @@ func viewMeal(mealType, dateStr string) {
 	}
 	defer resp.Body.Close()
 
-	var meals []struct {
-		ID    uint      `json:"id"`
-		Name  string    `json:"name"`
-		Type  string    `json:"type"`
-		Date  time.Time `json:"date"`
-		Foods []struct {
-			ID          string  `json:"id"`
-			Name        string  `json:"name"`
-			Calories    float64 `json:"calories"`
-			Protein     float64 `json:"protein"`
-			Carbs       float64 `json:"carbs"`
-			Fat         float64 `json:"fat"`
-			Fiber       float64 `json:"fiber"`
-			Sugar       float64 `json:"sugar"`
-			ServingSize float64 `json:"servingSize"`
-		} `json:"foods"`
+	// Read the response body for debugging
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
 	}
+	fmt.Println("Raw API response:", string(respBody))
 
-	if err := json.NewDecoder(resp.Body).Decode(&meals); err != nil {
+	// Create a new reader with the response body for decoding
+	reader := bytes.NewReader(respBody)
+
+	// Utiliser une structure plus flexible pour le décodage
+	var rawMeals []map[string]interface{}
+	if err := json.NewDecoder(reader).Decode(&rawMeals); err != nil {
 		fmt.Println("Error parsing response:", err)
 		return
 	}
 
-	if len(meals) == 0 {
+	if len(rawMeals) == 0 {
 		fmt.Printf("No %s found for %s\n", mealType, date.Format("2006-01-02"))
 		return
 	}
 
-	meal := meals[0]
-	fmt.Printf("\n%s - %s\n", meal.Type, meal.Date.Format("2006-01-02"))
+	// Afficher les informations du repas
+	meal := rawMeals[0]
+	fmt.Printf("\n%s - %s\n", meal["type"], meal["date"])
 	fmt.Println("Foods:")
 
 	// Track total nutrients
@@ -130,18 +126,37 @@ func viewMeal(mealType, dateStr string) {
 		Carbs    float64
 		Fat      float64
 		Fiber    float64
-		Sugar    float64
 	}
 
 	// List foods and accumulate nutrients
-	for _, food := range meal.Foods {
-		fmt.Printf("- %s (%.0f calories, %.1fg protein, %.1fg carbs, %.1fg fat, %.1fg fiber, %.1fg sugar)\n", food.Name, food.Calories, food.Protein, food.Carbs, food.Fat, food.Fiber, food.Sugar)
-		totalNutrients.Calories += food.Calories
-		totalNutrients.Protein += food.Protein
-		totalNutrients.Carbs += food.Carbs
-		totalNutrients.Fat += food.Fat
-		totalNutrients.Fiber += food.Fiber
-		totalNutrients.Sugar += food.Sugar
+	foods, ok := meal["foods"].([]interface{})
+	if !ok {
+		fmt.Println("Error: foods field is not an array")
+		return
+	}
+
+	for _, foodInterface := range foods {
+		food, ok := foodInterface.(map[string]interface{})
+		if !ok {
+			fmt.Println("Error: food item is not an object")
+			continue
+		}
+
+		name, _ := food["name"].(string)
+		calories, _ := food["calories"].(float64)
+		protein, _ := food["protein"].(float64)
+		carbs, _ := food["carbs"].(float64)
+		fat, _ := food["fat"].(float64)
+		fiber, _ := food["fiber"].(float64)
+
+		fmt.Printf("- %s (%.0f calories, %.1fg protein, %.1fg carbs, %.1fg fat, %.1fg fiber)\n",
+			name, calories, protein, carbs, fat, fiber)
+
+		totalNutrients.Calories += calories
+		totalNutrients.Protein += protein
+		totalNutrients.Carbs += carbs
+		totalNutrients.Fat += fat
+		totalNutrients.Fiber += fiber
 	}
 
 	// Display total nutrients
@@ -151,7 +166,6 @@ func viewMeal(mealType, dateStr string) {
 	fmt.Printf("Carbs: %.1fg\n", totalNutrients.Carbs)
 	fmt.Printf("Fat: %.1fg\n", totalNutrients.Fat)
 	fmt.Printf("Fiber: %.1fg\n", totalNutrients.Fiber)
-	fmt.Printf("Sugar: %.1fg\n", totalNutrients.Sugar)
 }
 
 func listMeals(userID, date, mealType string) {
@@ -187,29 +201,52 @@ func listMeals(userID, date, mealType string) {
 		return
 	}
 
-	var meals []struct {
-		ID    uint      `json:"id"`
-		Name  string    `json:"name"`
-		Type  string    `json:"type"`
-		Date  time.Time `json:"date"`
-		Foods []struct {
-			Name     string  `json:"name"`
-			Calories float64 `json:"calories"`
-		} `json:"foods"`
+	// Read the response body for debugging
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Error reading response body:", err)
+		return
 	}
+	fmt.Println("Raw API response:", string(respBody))
 
-	if err := json.NewDecoder(resp.Body).Decode(&meals); err != nil {
+	// Create a new reader with the response body for decoding
+	reader := bytes.NewReader(respBody)
+
+	// Utiliser une structure plus flexible pour le décodage
+	var rawMeals []map[string]interface{}
+	if err := json.NewDecoder(reader).Decode(&rawMeals); err != nil {
 		fmt.Println("Error parsing response:", err)
 		return
 	}
 
-	for _, meal := range meals {
-		fmt.Printf("\nMeal ID: %d\nName: %s\nType: %s\nDate: %s\n",
-			meal.ID, meal.Name, meal.Type, meal.Date.Format("2006-01-02"))
-		if len(meal.Foods) > 0 {
+	for _, meal := range rawMeals {
+		id, _ := meal["id"].(float64)
+		name, _ := meal["name"].(string)
+		mealType, _ := meal["type"].(string)
+		dateStr, _ := meal["date"].(string)
+
+		fmt.Printf("\nMeal ID: %.0f\nName: %s\nType: %s\nDate: %s\n",
+			id, name, mealType, dateStr)
+
+		foods, ok := meal["foods"].([]interface{})
+		if !ok {
+			fmt.Println("Error: foods field is not an array")
+			continue
+		}
+
+		if len(foods) > 0 {
 			fmt.Println("Foods:")
-			for _, food := range meal.Foods {
-				fmt.Printf("  - %s (%.0f calories)\n", food.Name, food.Calories)
+			for _, foodInterface := range foods {
+				food, ok := foodInterface.(map[string]interface{})
+				if !ok {
+					fmt.Println("Error: food item is not an object")
+					continue
+				}
+
+				foodName, _ := food["name"].(string)
+				calories, _ := food["calories"].(float64)
+
+				fmt.Printf("  - %s (%.0f calories)\n", foodName, calories)
 			}
 		}
 	}
@@ -419,6 +456,7 @@ func addFoodToMealType(mealType, dateStr, foodQuery string) {
 		return
 	}
 
+	fmt.Println("Adding food with ID:", foods[selection].FdcID)
 	resp, err = http.Post(addFoodURL, "application/json", bytes.NewBuffer(jsonPayload))
 	if err != nil {
 		fmt.Println("Error adding food to meal:", err)
