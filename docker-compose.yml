@@ -20,10 +20,9 @@ services:
       - "8080:8080"
     depends_on:
       - postgres
+    env_file:
+      - .env
     environment:
-      - POSTGRES_DB=bodytracker
-      - POSTGRES_USER=bodytracker
-      - POSTGRES_PASSWORD=bodytracker
-      - FDC_API_KEY=lVglma2Dy1h69QzmRovFef2yOxqABWT0bldH8iLm
+      - DB_HOST=postgres
 volumes:
   postgres_data:
