@@ -12,9 +12,9 @@ type User struct {
 	LastName  string  `json:"lastName"`
 	Age       int     `json:"age"`
 	Weight    float64 `json:"weight"`
-	Height    int     `json:"height"` // in cm
+	Height    int     `json:"height"`
 	Goal      string  `json:"goal"`
-	Sex       int     `json:"sex"` // 0 for female, 1 for male
+	Sex       int     `json:"sex"`
 	Targets   Target  `json:"targets" gorm:"foreignKey:UserID"`
 }
 
@@ -22,10 +22,10 @@ type Target struct {
 	gorm.Model
 	UserID   uint    `json:"userId" gorm:"uniqueIndex"`
 	Calories float64 `json:"calories"`
-	Protein  float64 `json:"protein"` // in grams
-	Carbs    float64 `json:"carbs"`   // in grams
-	Fat      float64 `json:"fat"`     // in grams
-	Fiber    float64 `json:"fiber"`   // in grams
+	Protein  float64 `json:"protein"`
+	Carbs    float64 `json:"carbs"`
+	Fat      float64 `json:"fat"`
+	Fiber    float64 `json:"fiber"`
 }
 
 type WeightRecord struct {

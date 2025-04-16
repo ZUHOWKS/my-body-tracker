@@ -236,7 +236,6 @@ func viewUserStats(id string) {
 }
 
 func viewTargets(id string) {
-	// Récupérer les objectifs
 	resp, err := http.Get(fmt.Sprintf("%s/users/%s/targets", apiURL, id))
 	if err != nil {
 		fmt.Println("Error getting user targets:", err)
@@ -260,7 +259,6 @@ func viewTargets(id string) {
 		return
 	}
 
-	// Récupérer les repas du jour
 	today := time.Now().Format("2006-01-02")
 	mealsResp, err := http.Get(fmt.Sprintf("%s/meals/user/%s?date=%s", apiURL, id, today))
 	if err != nil {
@@ -280,7 +278,6 @@ func viewTargets(id string) {
 		return
 	}
 
-	// Calculer les totaux des repas
 	var consumed struct {
 		Calories float64
 		Protein  float64
@@ -299,7 +296,6 @@ func viewTargets(id string) {
 		}
 	}
 
-	// Afficher les objectifs et la progression
 	fmt.Println("\nDaily Nutrition Targets and Progress:")
 	fmt.Printf("Calories: %.0f/%.0f kcal (%.1f%%)\n", consumed.Calories, target.Calories, (consumed.Calories/target.Calories)*100)
 	fmt.Printf("Protein:  %.1f/%.1f g (%.1f%%)\n", consumed.Protein, target.Protein, (consumed.Protein/target.Protein)*100)
@@ -307,7 +303,6 @@ func viewTargets(id string) {
 	fmt.Printf("Fat:      %.1f/%.1f g (%.1f%%)\n", consumed.Fat, target.Fat, (consumed.Fat/target.Fat)*100)
 	fmt.Printf("Fiber:    %.1f/%.1f g (%.1f%%)\n", consumed.Fiber, target.Fiber, (consumed.Fiber/target.Fiber)*100)
 
-	// Afficher les repas du jour
 	fmt.Println("\nToday's Meals:")
 	for _, meal := range meals {
 		fmt.Printf("\n%s:\n", meal.Type)
