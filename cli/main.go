@@ -13,14 +13,22 @@ func Entrypoint() {
 	fmt.Println("Welcome to My Body Tracker CLI!")
 	fmt.Println("Available commands:")
 	fmt.Println("  profile create - Create a new user profile")
+
 	fmt.Println("  profile view <id> - View user profile and health statistics")
 	fmt.Println("  profile list - List available users")
-	fmt.Println("  profile select <id> - Select a user")
+
 	fmt.Println("  profile set-targets <id> - Creater user targets")
 	fmt.Println("  profile targets <id> - View user targets")
+
+	fmt.Println("  profile weight <id> - Record user weight")
+	fmt.Println("  profile weight-history <id> - View user weight history")
+
+	fmt.Println("  profile select <id> - Select a user")
 	fmt.Println("  food search <query> - Search for food in database")
+
 	fmt.Println("  meal add <type> <date> <food_name> - Add food to meal")
 	fmt.Println("  meal view <type> <date> - View meal details and nutrients")
+
 	fmt.Println("  exit")
 
 	scanner := bufio.NewScanner(os.Stdin)

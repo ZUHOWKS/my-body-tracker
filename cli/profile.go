@@ -14,7 +14,7 @@ import (
 
 func handleProfileCommand(args []string) {
 	if len(args) < 1 {
-		fmt.Println("Usage: profile create | list | select <id> | view <id> | targets <id> | set-targets <id>")
+		fmt.Println("Usage: profile create | list | select <id> | view <id> | targets <id> | set-targets <id> | weight <id> | weight-history <id>")
 		return
 	}
 
@@ -48,8 +48,20 @@ func handleProfileCommand(args []string) {
 			return
 		}
 		setTargets(args[1])
+	case "weight":
+		if len(args) != 2 {
+			fmt.Println("Usage: profile weight <id>")
+			return
+		}
+		recordWeight(args[1])
+	case "weight-history":
+		if len(args) != 2 {
+			fmt.Println("Usage: profile weight-history <id>")
+			return
+		}
+		viewWeightHistory(args[1])
 	default:
-		fmt.Println("Unknown profile command. Available: create, list, select, view, targets, set-targets")
+		fmt.Println("Unknown profile command. Available: create, list, select, view, targets, set-targets, weight, weight-history")
 	}
 }
 
@@ -348,4 +360,76 @@ func promptUserTargets() Target {
 	fmt.Scanf("%f\n", &target.Fiber)
 
 	return target
+}
+
+func recordWeight(id string) {
+	var weight float64
+	var note string
+
+	fmt.Print("Enter your weight (kg): ")
+	fmt.Scanf("%f\n", &weight)
+
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Print("Enter a note (optional, press Enter to skip): ")
+	note, _ = reader.ReadString('\n')
+	note = strings.TrimSpace(note)
+
+	record := WeightRecord{
+		Weight: weight,
+		Date:   time.Now(),
+		Note:   note,
+	}
+
+	payload, err := json.Marshal(record)
+	if err != nil {
+		fmt.Println("Error preparing weight record:", err)
+		return
+	}
+
+	resp, err := http.Post(fmt.Sprintf("%s/users/%s/weight", apiURL, id), "application/json", bytes.NewBuffer(payload))
+	if err != nil {
+		fmt.Println("Error recording weight:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Error: Server returned", resp.Status)
+		return
+	}
+
+	fmt.Println("Weight recorded successfully!")
+}
+
+func viewWeightHistory(id string) {
+	resp, err := http.Get(fmt.Sprintf("%s/users/%s/weight/history", apiURL, id))
+	if err != nil {
+		fmt.Println("Error getting weight history:", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Error: Server returned", resp.Status)
+		return
+	}
+
+	var records []WeightRecord
+	if err := json.NewDecoder(resp.Body).Decode(&records); err != nil {
+		fmt.Println("Error parsing response:", err)
+		return
+	}
+
+	if len(records) == 0 {
+		fmt.Println("No weight records found.")
+		return
+	}
+
+	fmt.Println("\nWeight History:")
+	fmt.Println("Date\t\tWeight\tNote")
+	fmt.Println("----------------------------------------")
+	for _, record := range records {
+		dateStr := record.Date.Format("2006-01-02")
+		fmt.Printf("%s\t%.1f kg\t%s\n", dateStr, record.Weight, record.Note)
+	}
 }

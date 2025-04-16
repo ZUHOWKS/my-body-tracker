@@ -37,6 +37,7 @@ func Entrypoint() {
 		&models.Food{},
 		&models.Meal{},
 		&models.Target{},
+		&models.WeightRecord{},
 	)
 
 	// Initialize handlers
@@ -55,6 +56,8 @@ func Entrypoint() {
 		userRoutes.PUT("/:id", userHandler.UpdateUser)
 		userRoutes.GET("/:id/targets", userHandler.GetUserTargets)
 		userRoutes.POST("/:id/targets", userHandler.SetUserTargets)
+		userRoutes.POST("/:id/weight", userHandler.RecordWeight)
+		userRoutes.GET("/:id/weight/history", userHandler.GetWeightHistory)
 	}
 
 	foodRoutes := r.Group("/foods")

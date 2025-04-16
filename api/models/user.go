@@ -1,6 +1,10 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+
+	"gorm.io/gorm"
+)
 
 type User struct {
 	gorm.Model
@@ -22,4 +26,12 @@ type Target struct {
 	Carbs    float64 `json:"carbs"`   // in grams
 	Fat      float64 `json:"fat"`     // in grams
 	Fiber    float64 `json:"fiber"`   // in grams
+}
+
+type WeightRecord struct {
+	gorm.Model
+	UserID uint      `json:"userId" gorm:"index"`
+	Weight float64   `json:"weight"`
+	Date   time.Time `json:"date"`
+	Note   string    `json:"note,omitempty"`
 }

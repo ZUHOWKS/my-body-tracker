@@ -1,5 +1,9 @@
 package cli
 
+import (
+	"time"
+)
+
 type User struct {
 	ID            uint    `json:"id"`
 	FirstName     string  `json:"firstName"`
@@ -31,4 +35,11 @@ type Target struct {
 	Carbs    float64 `json:"carbs"`   // in grams
 	Fat      float64 `json:"fat"`     // in grams
 	Fiber    float64 `json:"fiber"`   // in grams
+}
+
+type WeightRecord struct {
+	ID     uint      `json:"id"`
+	Weight float64   `json:"weight"`
+	Date   time.Time `json:"date"`
+	Note   string    `json:"note,omitempty"`
 }

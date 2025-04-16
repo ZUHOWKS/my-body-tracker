@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/ZUHOWKS/my-body-tracker/api/models"
 	"github.com/ZUHOWKS/my-body-tracker/internal/calculator"
@@ -157,4 +158,54 @@ func (h *UserHandler) GetUserTargets(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, target)
+}
+
+func (h *UserHandler) RecordWeight(c *gin.Context) {
+	userID := c.Param("id")
+
+	var record models.WeightRecord
+	if err := c.ShouldBindJSON(&record); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Vérifier si l'utilisateur existe
+	var user models.User
+	if err := h.db.First(&user, userID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+		return
+	}
+
+	// Définir l'ID de l'utilisateur et la date
+	record.UserID = user.ID
+	if record.Date.IsZero() {
+		record.Date = time.Now()
+	}
+
+	// Mettre à jour le poids de l'utilisateur
+	user.Weight = record.Weight
+	if err := h.db.Save(&user).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Créer l'enregistrement de poids
+	if err := h.db.Create(&record).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, record)
+}
+
+func (h *UserHandler) GetWeightHistory(c *gin.Context) {
+	userID := c.Param("id")
+
+	var records []models.WeightRecord
+	if err := h.db.Where("user_id = ?", userID).Order("date desc").Find(&records).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, records)
 }
