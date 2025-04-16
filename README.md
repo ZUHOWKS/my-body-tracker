@@ -51,15 +51,11 @@ Cette commande construira l'image Docker définie dans le `Dockerfile` et démar
 
 ---
 
-### 4. **Utiliser Make pour simplifier les commandes**
-
-Un `Makefile` est présent pour automatiser certaines tâches. Par exemple, pour construire le projet :
+### 4. **Lancer la CLI**
 
 ```bash
-make build
+go run cmd/cli/main.go
 ```
-
-Consulte le contenu du `Makefile` pour découvrir d'autres commandes utiles, telles que `make run` ou `make test`.
 
 ---
 
